@@ -14,11 +14,11 @@ void RawJetPt(Bool_t ispp = 1 )
 {
 
 	gStyle->SetErrorX(0.001);
-	TString fdata("TestLHC13dAOD");
+	TString fdata("TestLHC13cAOD");
 
 	Double1D binCent = {0, 100}; // centbin merging
 	Double1D binJetPt = {40, 60, 80, 100, 150}; // centbin merging
-	Double1D binz = {0, 100};
+	Double1D binz = {0, 1}; //fragmentation variable
 
 	auto datalist = LoadJetResultList (fdata.Data(), fdata.Data());
 	auto JT = BSTHnSparseHelper::Load( "hJetJtWeight", datalist );
@@ -26,12 +26,16 @@ void RawJetPt(Bool_t ispp = 1 )
 	JT.SetBin("binjetpt",binJetPt);
 	JT.SetBin("zbin",binz);
 	JT.PrintAxis("all");
+	auto PERP = BSTHnSparseHelper::Load( "hPerpJtWeight", datalist );
+	PERP.SetBin("Cent",binCent);
+	PERP.SetBin("binjetpt",binJetPt);
+	PERP.SetBin("zbin",binz);
 
 	//-----------------------------------------------------------
     //Draw full jet pt distribution
-	auto PT = BSTHnSparseHelper::Load( "hJetPtFullJet", datalist );
+	auto PT = BSTHnSparseHelper::Load( "hFullJetPt", datalist );
 	PT.SetBin("Cent", binCent);
-	auto pt = PT.GetTH1("fulljetpt", 1, {1, -1, 1}); // pthardbin = 1 always for data
+	auto pt = PT.GetTH1("fulljetpt", 1, {-1, -1, 1}); // pthardbin = 1 always for data
 	if(1){
 		auto canvas = new TCanvas("canvas","canvas",1280,800);
 		gPad->SetLogy(1);
@@ -49,12 +53,11 @@ void RawJetPt(Bool_t ispp = 1 )
 	p->SetTickx();
 	p->SetLogy(1);
 	p->SetLogx(1);
-	;
 	p->cd();
 	gStyle->SetOptStat(0);
 	gStyle->SetOptTitle(0);
 
-	TH1D *hdummy = new TH1D("dummy", "dummy", 40000, 0, 4);
+	TH1D *hdummy = new TH1D("dummy", "dummy", 40000, 0, 10);
 	hdummy->GetXaxis()->SetRangeUser(0.08, 4);
 	hset(*hdummy, "#it{j}_{T}", "d^{2}#it{#sigma}/d#it{p}_{T}^{jet}d#it{#eta} (mb #it{c}/GeV)", 0.9, 1.1, 0.07, 0.06, 0.01, 0.001, 0.04, 0.05, 510, 510);
 	hdummy->Draw();
@@ -63,10 +66,11 @@ void RawJetPt(Bool_t ispp = 1 )
 	lg->SetTextSize(0.0521739);
 	lg->SetBorderSize(0);
 
-	//for (auto i = 1; i <= binJetPt.size()-1; i++)
-	for (auto i = 1; i <2; i++)
+	for (auto i = 1; i <= binJetPt.size()-1; i++)
+	//for (auto i = 1; i <2; i++)
 	{
-		auto jt = JT.GetTH1(Form("h%d", i), 3, {1, i, 1, -1, 1});
+		auto jt = JT.GetTH1(Form("h%d", i), 3, {-1, i, 1, -1, 1});
+		auto perp = PERP.GetTH1(Form("hperp%d", i), 3, {1, i, 1, -1, 1});
 		jt->SetMarkerStyle(20);
 		jt->SetMarkerColor(colors[i-1]);
 		Int_t lbin = pt->GetXaxis()->FindBin(binJetPt.at(i - 1) + 0.00001);
@@ -74,14 +78,23 @@ void RawJetPt(Bool_t ispp = 1 )
 		Double_t njets = pt->Integral(lbin, rbin);
 		cout << i <<" "<< binJetPt.at(i - 1) << " " << binJetPt.at(i) << endl;
 		jt->Scale(1. / njets, "width"); // bin width scaling
+		perp->Scale(1. / njets, "width");
+		auto signal = (TH1D *)jt->Clone();
+		signal->Add(perp, -1);
 		//jt->Draw("hist same");
 		auto g = new TGraph;
 		//g->SetPoint(g->GetN(), 0, 0);
-		for (auto j = 1; j <= jt->GetNbinsX(); j++ ){
-			g->SetPoint(g->GetN(), jt->GetXaxis()->GetBinCenter(j), jt->GetBinContent(j));
+		for (auto j = 1; j <= signal->GetNbinsX(); j++ ){
+			g->SetPoint(g->GetN(), signal->GetXaxis()->GetBinCenter(j), signal->GetBinContent(j));
 		}
 		g->SetMarkerStyle(20);
+		g->SetMarkerColor(colors[i-1]);
 		g->Draw("PZsame");
+		//jt->SetLineColor(1);
+		//jt->Draw("histsame");
+		//perp->SetLineColor(4);
+		//perp->Draw("histsame");
+		
 	}
 	//lg->Draw();
 
