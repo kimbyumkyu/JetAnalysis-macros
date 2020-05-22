@@ -10,7 +10,7 @@ Int_t colors[] = {kRed, kOrange, kGreen, kGreen + 3, kBlue, kBlue + 2, kViolet, 
 TH1D *getHisto(TFile* fIn, TString sHistoName);
 TGraphErrors *CalculateRatio( TGraphErrors* gr1, TGraphErrors* gr2, double xshift=0.0, bool invert=false);
 
-void DrawFullJetPt(TString ndata = "JtLHC13cAOD", TString nmc = "JtLHC13cMCAOD")
+TH1D* DrawFullJetPt(TString ndata = "JtLHC13cAOD", TString nmc = "JtLHC13cMCAOD", Bool_t scale = true)
 {
 
 	gStyle->SetErrorX(0.001);
@@ -133,10 +133,10 @@ void DrawFullJetPt(TString ndata = "JtLHC13cAOD", TString nmc = "JtLHC13cMCAOD")
 	hfinal -> SetMarkerStyle (20);
 	hfinal -> SetMarkerColor (1);
 	hfinal -> SetLineColor (1);
-	hfinal -> Scale(1./noe*0.5/0.3,"width");
+	if (scale) hfinal -> Scale(1./noe*0.5/0.3,"width");
 	hfinal -> Draw();
 	dpt->GetXaxis()->SetRangeUser(0, 150);
-	dpt -> Scale(1./noe*0.5/0.3,"width");
+	if (scale) dpt -> Scale(1./noe*0.5/0.3,"width");
 	dpt -> SetMarkerColor(1);
 	dpt -> SetLineColor(1);
 	dpt -> SetMarkerStyle(24);
@@ -171,8 +171,7 @@ void DrawFullJetPt(TString ndata = "JtLHC13cAOD", TString nmc = "JtLHC13cMCAOD")
 	hset(*r, "#it{p}_{T}^{full jet} (GeV/#it{c})", "Ratio (raw/final)", 1.0, 0.8, 0.08, 0.09, 0.01, 0.001, 0.07, 0.06, 10, 510);
 	r->Draw();
 	r->Draw("same");
-
-
+	return hfinal;
 
 	/*
 	pt->Scale(0.5/0.3, "width");
